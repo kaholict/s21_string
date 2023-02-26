@@ -1,50 +1,115 @@
-#include <stdio.h>  // Для printf
-#include <string.h> // Для strchr
+#include <stdio.h>   // Для printf
+#include <string.h>  // Для strchr
 typedef long unsigned s21_size_t;
-#define s21_NULL ((void*)0)
+#define s21_NULL ((void *)0)
 
 s21_size_t s21_strlen(const char *str) {
-    s21_size_t i = 0;
-    while (str[i] != '\0') {
-        i++;
-    }
-    return i;
+  s21_size_t i = 0;
+  while (str[i] != '\0') {
+    i++;
+  }
+  return i;
 }
 
 char *s21_strchr(const char *str, int c) {
-    char *ach = s21_NULL;
-    for (s21_size_t i = 0; i < s21_strlen(str); i++) {
-        if (*(str + i) == c) {
-            ach = (char *)str + i;
-            break;
-        }
+  char *ach = s21_NULL;
+  for (s21_size_t i = 0; i < s21_strlen(str); i++) {
+    if (*(str + i) == c) {
+      ach = (char *)str + i;
+      break;
     }
-    return ach;
+  }
+  return ach;
 }
 
-s21_size_t s21_strcspn(const char *str1, const char *str2) {
-    s21_size_t res = 0;
-    if (str1 != s21_NULL && str2 != s21_NULL) {
-        int flag = 1;
-        while (*str1 && flag) {
-            if (s21_strchr(str2, *str1) == NULL) {
-                str1++;
-                res++;
-            }
-            else
-                flag = 0;
-        }
+char *s21_strpbrk(const char *str1, const char *str2) {
+  char *result = s21_NULL;
+  if (str1 != s21_NULL && str2 != s21_NULL) {
+    int flag = 1;
+    while (*str1 && flag) {
+      if (s21_strchr(str2, *str1)) {
+        flag = 0;
+        result = (char *)str1;
+      } else
+        str1++;
     }
-    return res;
+  }
+  return result;
+}
+
+char *s21_strrchr(const char *str, int c) {
+  char *result = s21_NULL;
+  if (str != s21_NULL) {
+    while (*str) {
+      if (*str == c) {
+        result = (char *)str;
+      }
+      str++;
+    }
+  }
+  return result;
+}
+
+size_t s21_strspn(const char *str1, const char *str2) {
+  size_t result = 0;
+  if (str1 != s21_NULL && str2 != s21_NULL) {
+    int flag = 1;
+    while (*str1 && flag) {
+      if (s21_strchr(str2, *str1) == NULL) {
+        str1++;
+      } else {
+        int flag2 = 1;
+        while (*str1 && flag2) {
+          if (s21_strchr(str2, *str1)) {
+            str1++;
+            result++;
+          } else
+            flag2 = 0;
+        }
+        flag = 0;
+      }
+    }
+  }
+  return result;
+}
+
+char *s21_strstr(const char *haystack, const char *needle) {
+  s21_size_t len = s21_strlen(needle);
+  char *result = s21_NULL;
+  if (haystack != s21_NULL && needle != s21_NULL) {
+    int flag = 1;
+    while (*haystack != '\0' && flag) {
+      if (*haystack == *needle) {
+        s21_size_t counter = 0;
+        char *temp = (char *)haystack;
+        while (*haystack == *needle && *needle != '\0') {
+          counter++;
+          haystack++;
+          needle++;
+        }
+        if (counter == len) {
+          result = (char *)temp;
+          flag = 0;
+        }
+      }
+      haystack++;
+    }
+  }
+  return result;
 }
 
 int main() {
-    char str [10] = "0123456789";
-    // Набор символов, которые не должны входить в искомый сегмент
-    char sym [10] = "9876";
+   char str1[11] = "0123456789";
+   char str2[10] = "345";
+   char *istr;
+  
+   istr = s21_strstr(str1,str2);
 
-    // Определяем длину начального сегмента, не содержащего символы “9876”
-    printf ("Длина сегмента: %ld\n",s21_strcspn (str,sym));
+   //Вывод результата поиска на консоль
+   if (istr == NULL)
+      printf("Строка не найдена\n");
+   else
+      printf("Искомая строка начинается с символа %ld\n", istr - str1 + 1);
 
-    return 0;
+   return 0;
 }
