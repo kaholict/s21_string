@@ -1,22 +1,69 @@
-CC = gcc
-CFLAGS = -c -Wall -Werror -Wextra
-CFLAGS_WC = -Wall -Werror -Wextra
+# CC = gcc
+# CFLAGS = -Wall -Werror -Wextra -std=c11 -D_GNU_SOURCE
+# #SRCS = s21_*.c
+# SRCS := $(wildcard s21_*.c)
+# SRCS := $(filter-out s21_sscanf.c, $(SRCS))
+# OBJS = $(SRCS:.c=.o)
 
-all: s21_string
+# OS := $(shell uname)
+# ifeq ($(OS),Linux) # определяем ОС
+# TEST_LIBS = -lcheck -lpthread -lrt -lsubunit -lm -fprofile-arcs -ftest-coverage
+# else
+# TEST_LIBS = -lcheck -lpthread -lm -fprofile-arcs -ftest-coverage
+# endif
 
-s21_string: s21_string.o string.o s21_sprintf.o
-	$(CC) $(CFLAGS_WC) s21_string.o string.o s21_sprintf.o -o s21_string
+CC=gcc
+CFLAG=-c
+All_Flag=-Wall -Wextra -Werror -std=c11
+OFlags=-o
 
-s21_string.o: s21_string.c
-	$(CC) $(CFLAGS) s21_string.c
+Test_Flag = -pedantic -lcheck -lm -lpthread -lgcov --coverage
+ifeq ($(shell uname), Linux)
+Test_Flag = -pedantic -lcheck -lsubunit -lrt -lm -lpthread -lgcov --coverage
+endif
 
-string.o: string.c
-	$(CC) $(CFLAGS) string.c
 
-s21_sprintf.o: s21_sprintf.c
-	$(CC) $(CFLAGS) s21_sprintf.c
+All_H = s21*.h
+All_C = s21*.c
+All_O = s21*.o
+#All_H_test = test*.h
+All_C_test = test*.c
+All_O_test = test*.o
+A_string = s21_string.a
+A_Tests = check_test.a
 
-clean: 
-	rm -rf *.o *.out s21_grep
+all: gcov_report
 
-rebuild: clean all
+s21_string.a:
+	$(CC) $(CFLAG) $(All_Flag) $(All_C)
+	ar rc $(A_string) $(All_O)
+	ranlib $(A_string) 	
+
+test: $(A_string)
+	$(CC) $(All_Flag) $(OFlags) test $(All_C) $(All_C_test) main.c $(Test_Flag)
+	./test
+# c - Захват данных о покрытии
+
+test_leaks: $(A_string)
+	$(CC) $(All_Flag) $(OFlags) test $(All_C) $(All_C_test) main.c $(Test_Flag)
+
+gcov_report:
+	gcc --coverage $(Test_Flag) $(All_C_test) main.c   $(All_C) -o ./gcov
+	./gcov
+	lcov -t "./gcov" -o report.info --no-external -c -d .
+	genhtml -o report report.info
+	open ./report/index.html
+	rm -rf *.gcno *gcda *.gcov
+
+check_format:
+	clang-format -i *.c *.h
+
+clang:
+	cp ../materials/linters/.clang-format ./ 
+	clang-format -n *.c *.h
+
+leaks_m:
+	CK_FORK=no leaks --atExit -- ./test
+
+clean :
+	rm -rf *.o *.a gcov *.gch *.gcda *.gcno *.info *.out test report check.c
