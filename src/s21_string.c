@@ -21,7 +21,7 @@ int s21_memcmp(const void *str1, const void *str2, size_t n) {
     }
   return result;
 }
-
+  
 void *s21_memcpy(void *dest, const void *src, size_t n) {
   char *dest_char = (char *)dest;
   char *src_char = (char *)src;
@@ -304,6 +304,6 @@ void *s21_to_lower(const char *str) {
   return str_up;
 }
 
-void *s21_insert(const char *src, const char *str, size_t start_index) {}
+// void *s21_insert(const char *src, const char *str, size_t start_index) {}
 
-void *s21_trim(const char *src, const char *trim_chars) {}
+// void *s21_trim(const char *src, const char *trim_chars) {}
