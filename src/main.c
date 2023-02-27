@@ -98,18 +98,67 @@ char *s21_strstr(const char *haystack, const char *needle) {
   return result;
 }
 
+char *s21_strtok(char *str, const char *delim) {
+  char *result = s21_NULL;
+  static char *newGen;
+  if (!str) str = newGen;
+  if (str) {
+    while (1) {
+      if (s21_strchr(delim, *str)) {
+        str++;
+        continue;
+      }
+      break;
+    }
+    if (*str != '\0') {
+      result = str;
+      while (1) {
+        if (*str == '\0') {
+          newGen = str;
+          break;
+        } else if (s21_strchr(delim, *str)) {
+          *str = '\0';
+          newGen = str + 1;
+          break;
+        }
+        str++;
+      }
+    }
+  }
+  return result;
+}
+
 int main() {
-   char str1[11] = "0123456789";
-   char str2[10] = "345";
-   char *istr;
-  
-   istr = s21_strstr(str1,str2);
+  // Массив со строкой для поиска
+  char str[24] = "test1/test2/test3/test4";
+  char s21_str[24] = "test1/test2/test3/test4";
+  // Набор символов, которые должны входить в искомый сегмент
+  char sep[10] = "/";
+  // Переменная, в которую будут заноситься начальные адреса частей
+  // строки str
+  char *istr;
+  char *s21_istr;
 
-   //Вывод результата поиска на консоль
-   if (istr == NULL)
-      printf("Строка не найдена\n");
-   else
-      printf("Искомая строка начинается с символа %ld\n", istr - str1 + 1);
+  printf("Исходная строка: %s\n", str);
+  printf("Результат разбиения:\n");
+  // Выделение первой части строки
+  istr = strtok(str, sep);
+  s21_istr = s21_strtok(s21_str, sep);
 
-   return 0;
+  // Выделение последующих частей
+  while (istr != NULL) {
+    // Вывод очередной выделенной части
+    printf("%s\n", istr);
+    // Выделение очередной части строки
+    istr = strtok(NULL, sep);
+  }
+
+  while (s21_istr != NULL) {
+    // Вывод очередной выделенной части
+    printf("%s\n", s21_istr);
+    // Выделение очередной части строки
+    s21_istr = s21_strtok(NULL, sep);
+  }
+
+  return 0;
 }

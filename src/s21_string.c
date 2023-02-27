@@ -235,4 +235,35 @@ char *s21_strstr(const char *haystack, const char *needle) {
   return result;
 }
 
-
+char *s21_strtok(char *str, const char *delim) {
+  char *result = s21_NULL;
+  static char *newGen;
+  if (!str) {
+    str = newGen;
+  }
+  if (str) {
+    while (1) {
+      if (s21_strchr(delim, *str)) {
+        str++;
+        continue;
+      }
+      if (*str == '\0') {
+        return s21_NULL;
+      }
+      break;
+    }
+    result = str;
+    while (1) {
+      if (*str == '\0') {
+        newGen = str;
+        break;
+      } else if (s21_strchr(delim, *str)) {
+        *str = '\0';
+        newGen = str + 1;
+        break;
+      }
+      str++;
+    }
+  }
+  return result;
+}
