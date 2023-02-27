@@ -267,3 +267,43 @@ char *s21_strtok(char *str, const char *delim) {
   }
   return result;
 }
+
+void *s21_to_upper(const char *str) {
+  char *str_up = s21_NULL;
+  if (str) {
+    s21_size_t len = s21_strlen(str);
+    str_up = (char *)calloc(len + 1, sizeof(char));
+    if (str_up) {
+      for (s21_size_t i = 0; i <= len; i++) {
+        if (str[i] >= 'a' && str[i] <= 'z')
+          str_up[i] = (str[i] - 'a') + 'A';
+        else
+          str_up[i] = str[i];
+      }
+      str_up[len] = '\0';
+    }
+  }
+  return str_up;
+}
+
+void *s21_to_lower(const char *str) {
+  char *str_up = s21_NULL;
+  if (str) {
+    s21_size_t len = s21_strlen(str);
+    str_up = (char *)calloc(len + 1, sizeof(char));
+    if (str_up) {
+      for (s21_size_t i = 0; i <= len; i++) {
+        if (str[i] >= 'A' && str[i] <= 'Z')
+          str_up[i] = (str[i] - 'A') + 'a';
+        else
+          str_up[i] = str[i];
+      }
+      str_up[len] = '\0';
+    }
+  }
+  return str_up;
+}
+
+void *s21_insert(const char *src, const char *str, size_t start_index) {}
+
+void *s21_trim(const char *src, const char *trim_chars) {}

@@ -1,5 +1,5 @@
 #include <stdio.h>   // Для printf
-#include <string.h>  // Для strchr
+#include <stdlib.h>  // Для strchr
 typedef long unsigned s21_size_t;
 #define s21_NULL ((void *)0)
 
@@ -128,37 +128,29 @@ char *s21_strtok(char *str, const char *delim) {
   return result;
 }
 
+void *s21_to_lower(const char *str) {
+  char *str_up = s21_NULL;
+  if (str) {
+    s21_size_t len = s21_strlen(str);
+    str_up = (char *)calloc(len + 1, sizeof(char));
+    if (str_up) {
+      for (s21_size_t i = 0; i <= len; i++) {
+        if (str[i] >= 'A' && str[i] <= 'Z')
+          str_up[i] = (str[i] - 'A') + 'a';
+        else
+          str_up[i] = str[i];
+      }
+      str_up[len] = '\0';
+    }
+  }
+  printf("%s", str_up);
+  return str_up;
+}
+
 int main() {
   // Массив со строкой для поиска
-  char str[24] = "test1/test2/test3/test4";
-  char s21_str[24] = "test1/test2/test3/test4";
-  // Набор символов, которые должны входить в искомый сегмент
-  char sep[10] = "/";
-  // Переменная, в которую будут заноситься начальные адреса частей
-  // строки str
-  char *istr;
-  char *s21_istr;
-
-  printf("Исходная строка: %s\n", str);
-  printf("Результат разбиения:\n");
-  // Выделение первой части строки
-  istr = strtok(str, sep);
-  s21_istr = s21_strtok(s21_str, sep);
-
-  // Выделение последующих частей
-  while (istr != NULL) {
-    // Вывод очередной выделенной части
-    printf("%s\n", istr);
-    // Выделение очередной части строки
-    istr = strtok(NULL, sep);
-  }
-
-  while (s21_istr != NULL) {
-    // Вывод очередной выделенной части
-    printf("%s\n", s21_istr);
-    // Выделение очередной части строки
-    s21_istr = s21_strtok(NULL, sep);
-  }
+  char str[24] = "wertDFsdSDS21GRGREre";
+  s21_to_lower(str);
 
   return 0;
 }
