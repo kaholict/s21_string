@@ -256,7 +256,6 @@ static const char *errorList[] = {
     "Memory page has hardware error"};
 #endif
 
-
 void *s21_memchr(const void *str, int c, size_t n) {
   void *result = s21_NULL;
   if (n >= s21_strlen(str)) n = s21_strlen(str);
@@ -321,50 +320,37 @@ char *s21_strcat(char *dest, const char *src) {
 }
 
 char *s21_strncat(char *dest, const char *src, s21_size_t n) {
-  s21_size_t len_dest = s21_strlen(dest);
-  unsigned int i = 0;
-  for ( ; i < n; i++){
-    dest[len_dest+i] = src[i];
-  }
-  dest[len_dest + i] = '\0';
+  char *a = dest + s21_strlen(dest);
+  while (*src && n--) *a++ = *src++;
+  *a = '\0';
   return dest;
 }
 
 char *s21_strchr(const char *str, int c) {
   char *result = s21_NULL;
-  for (s21_size_t i = 0; i < s21_strlen(str); i++)
+  int flag = 1;
+  for (s21_size_t i = 0; i < s21_strlen(str) && flag; i++)
     if (*(str + i) == c) {
       result = (char *)str + i;
-      break;
+      flag = 0;
     }
+  if (c == '\0') result = (char *)(str + (int)s21_strlen(str));
   return result;
 }
 
 int s21_strcmp(const char *str1, const char *str2) {
-  int result = 0;
-  s21_size_t len = 0;
-  if (s21_strlen(str1) < s21_strlen(str2)) {
-    len = s21_strlen(str2);
-  } else {
-    len = s21_strlen(str1);
+  while (*str1 && (*str1 == *str2)) {
+    str1++;
+    str2++;
   }
-  for (s21_size_t i = 0; i < len; i++) {
-    result = *str1++ - *str2++;
-    if (result != 0) {
-      return result;
-    }
-  }
-  return result;
+  return *str1 - *str2;
 }
 
 int s21_strncmp(const char *str1, const char *str2, size_t n) {
-  int result = 0;
-  for (s21_size_t i = 0; i < n; i++)
-    if (*((char *)str1 + i) != *((char *)str2 + i)) {
-      result = *((char *)str1 + i) - *((char *)str2 + i);
-      break;
-    }
-  return result;
+  for (s21_size_t i = 0; *str1 && *str1 == *str2 && i < n; str1++, str2++, i++)
+    ;
+  int res = n <= 0 ? 0 : *str1 - *str2;
+  return res;
 }
 
 char *s21_strcpy(char *dest, const char *src) {
@@ -402,12 +388,12 @@ char *s21_strerror(int errnum) {
   static char result[512] = {'\0'};
   if (errnum <= MIN_ERRNUM || errnum >= MAX_ERRNUM) {
     char temp[1024] = {'\0'};
-    #ifdef __APPLE__
+#ifdef __APPLE__
     s21_sprintf(temp, "Unknown error: %d", errnum);
-    #endif
-    #ifdef __linux__
+#endif
+#ifdef __linux__
     s21_sprintf(temp, "Unknown error %d", errnum);
-    #endif
+#endif
     s21_strcpy(result, temp);
   } else {
     s21_strcpy(result, ((char *)errorList[errnum]));
@@ -438,26 +424,19 @@ char *s21_strpbrk(const char *str1, const char *str2) {
 
 char *s21_strrchr(const char *str, int c) {
   char *result = s21_NULL;
-  if (str != s21_NULL) {
-    while (*str) {
-      if (*str == c) {
-        result = (char *)str;
-      }
-      str++;
-    }
-  }
-  if (result == s21_NULL && c == '\0') {
-    result = "";
-  }
+  if (str != s21_NULL)
+    while (*str++)
+      if (*str == c) result = (char *)str;
+  if (result == s21_NULL && c == '\0') result = (char *)str;
   return result;
 }
- 
+
 s21_size_t s21_strspn(const char *str1, const char *str2) {
   s21_size_t result = 0;
   int countStart = 0;
   int flag = 0;
   do {
-    if (s21_strchr(str2, *str1)) {
+    if (s21_strchr(str2, *str1) && *str1 != '\0') {
       if (flag == 0 && countStart != 0) {
         break;
       } else {
@@ -473,18 +452,35 @@ s21_size_t s21_strspn(const char *str1, const char *str2) {
 }
 
 char *s21_strstr(const char *haystack, const char *needle) {
-  s21_size_t len = s21_strlen(needle);
-  char *s = (char*) haystack;
+  size_t len = s21_strlen(needle);
   char *result = s21_NULL;
+  char *temp_end = (char *)haystack;
+  char *temp_needle = s21_NULL;
+  char *temp = s21_NULL;
   if (haystack != s21_NULL && needle != s21_NULL) {
-    int flag = 1;
-    while (*s != '\0' && flag) {
-        if (s21_strncmp(s, needle, len) == 0) {
+    if (needle[0] == '\0') {
+      result = temp_end;
+    } else {
+      int flag = 1;
+      while (*haystack != '\0' && flag) {
+        int new_flag = 1;
+        temp_needle = (char *)needle;
+        if (*haystack == *temp_needle) {
+          size_t counter = 0;
+          temp = (char *)haystack;
+          while (*haystack == *temp_needle && *temp_needle != '\0') {
+            counter++;
+            haystack++;
+            temp_needle++;
+            new_flag = 0;
+          }
+          if (counter == len) {
+            result = (char *)temp;
             flag = 0;
-            result = s;
-        } else {
-            s++;
+          }
         }
+        if (flag && new_flag) haystack++;
+      }
     }
   }
   return result;
@@ -498,7 +494,7 @@ char *s21_strtok(char *str, const char *delim) {
   }
   if (str) {
     while (1) {
-      if (s21_strchr(delim, *str)) {
+      if (s21_strchr(delim, *str) && *str != '\0') {
         str++;
         continue;
       }
@@ -512,7 +508,7 @@ char *s21_strtok(char *str, const char *delim) {
       if (*str == '\0') {
         newGen = str;
         break;
-      } else if (s21_strchr(delim, *str)) {
+      } else if (s21_strchr(delim, *str) && *str != '\0') {
         *str = '\0';
         newGen = str + 1;
         break;
@@ -559,59 +555,48 @@ void *s21_to_lower(const char *str) {
   return str_up;
 }
 
-void *s21_insert(const char *src, const char *str, size_t start_index) {
-  s21_size_t i = 0;
-  char *string = NULL;
-  string = (char *)calloc(s21_strlen(src) + s21_strlen(str) + 1, sizeof(char));
-  if (string == NULL || src == NULL || str == NULL) {
-  } else if (start_index > s21_strlen(src) || (int)start_index < 0) {
-  } else {
-    for (i = 0; i < start_index; i++) string[i] = src[i];
-    for (i = start_index; i < start_index + s21_strlen(str); i++)
-      string[i] = str[i - start_index];
-    for (i = start_index + s21_strlen(str);
-         i < s21_strlen(src) + s21_strlen(str); i++)
-      string[i] = src[i - s21_strlen(str)];
-    string[s21_strlen(src) + s21_strlen(str)] = '\0';
+void *s21_insert(const char *src, const char *str, s21_size_t start_index) {
+  char *ptr = s21_NULL;
+  if (src != s21_NULL && str != NULL) {
+    s21_size_t length_src = s21_strlen(src);
+    if (start_index <= length_src) {
+      s21_size_t length_str = s21_strlen(str);
+      ptr = calloc(length_src + length_str + 1, sizeof(char));
+      if (ptr) {
+        s21_strcpy(ptr, src);
+        s21_strcpy(ptr + start_index, str);
+        s21_strcpy(ptr + start_index + length_str, src + start_index);
+      }
+    }
   }
-  return string;
+  return ptr;
 }
 
 void *s21_trim(const char *src, const char *trim_chars) {
-  int i = 0, j = 0, count = 0, match1 = 0, out = 1, match2;
-  char *string = NULL;
-  if (src != NULL && trim_chars != NULL) {
-    while (src[i] != '\0' && out) {
-      for (j = 0; j < (int)s21_strlen(trim_chars); j++) {
-        if (src[i] != trim_chars[j]) {
-          count++;
+  char *res = s21_NULL;
+  if (src != s21_NULL) {
+    if (trim_chars == s21_NULL || s21_strlen(trim_chars) == 0) trim_chars = " ";
+    int res_len = s21_strlen(src) + 1;
+    res = (char *)calloc(res_len, sizeof(char));
+    if (res != s21_NULL) {
+      int len_chars = s21_strspn(src, trim_chars);
+      const char *temp = src + len_chars;
+      s21_strcpy(res, temp);
+      int str_len = s21_strlen(res);
+      if (str_len > 0) {
+        res += str_len - 1;
+        int i = 1;
+        while (s21_strpbrk(res, trim_chars) != s21_NULL) {
+          (*res) = '\0';
+          if (i < str_len) res--;
+          ++i;
         }
+        int res_len = str_len - i;
+        res -= res_len;
       }
-      if (count == (int)s21_strlen(trim_chars)) out = 0;
-      count = 0;
-      i++;
-    }
-    match1 = i - 1;
-    out = 1;
-    i = (int)s21_strlen(src) - 1;
-    while (src[i] != '\0' && out) {
-      for (j = 0; j < (int)s21_strlen(trim_chars); j++) {
-        if (src[i] != trim_chars[j]) {
-          count++;
-        }
-      }
-      if (count == (int)s21_strlen(trim_chars)) out = 0;
-      count = 0;
-      i--;
-    }
-    match2 = i + 2;
-    if ((string = (char *)realloc(
-             string, (match2 - match1 + 1) * sizeof(char))) != NULL) {
-      for (i = 0; i < match2 - match1; i++) string[i] = src[i + match1];
-      string[match2 - match1] = '\0';
     }
   }
-  return string;
+  return res;
 }
 
 void Specifier_c(StructFormat my_struct, va_list arguments, char *str,
@@ -667,53 +652,8 @@ void Specifier_double(StructFormat my_struct, va_list arguments, char *str,
     f = va_arg(arguments, long double);
   else
     f = va_arg(arguments, double);
-  if (my_struct.accuracy == -1) my_struct.accuracy = 6;
-  ftoa(f, temp_str, my_struct.accuracy);
+  double_to_string(f, temp_str, my_struct.accuracy);
   record_to_string(my_struct, str, temp_str, (f >= 0) ? 1 : -1, count);
-}
-
-void ftoa(double f, char *buf, int precision) {
-  double int_part = 0, f_part = 0;
-  if (precision == 0)
-    int_part = round(f);
-  else
-    f_part = modf(f, &int_part);
-  char temp_buf[1024] = {'\0'};
-  itoa(int_part, buf);
-  int count_symbols = 0;
-  if (precision > 0) {
-    s21_strcat(buf, ".");
-    for (int i = 1; i <= precision; ++i) {
-      f_part *= 10;
-    }
-    f_part = round(f_part);
-    if (f_part < 0) f_part *= -1;
-    long long temp_f_part = (long long)f_part;
-    while (temp_f_part > 0) {
-      count_symbols++;
-      temp_f_part /= 10;
-    }
-    if (count_symbols == 0) count_symbols = 1;
-    itoa((long long)f_part, temp_buf);
-  }
-  int i_buf = s21_strlen(buf);
-  add_spaces_or_zeros(buf, precision - count_symbols, '0', &i_buf);
-  s21_strcat(buf, temp_buf);
-}
-
-void add_spaces_or_zeros(char *str, int value, char ch, int *i_str) {
-  for (int i = 0; i < value; ++i, ++(*i_str)) str[*i_str] = ch;
-}
-
-void itoa(long long n, char *buf) {
-  int i = 0;
-  long long sign = n;
-  if (sign < 0) n = -n;
-  do {
-    buf[i++] = n % 10 + '0';
-  } while ((n /= 10) > 0);
-  if (sign < 0) buf[i++] = '-';
-  line_reversal(buf);
 }
 
 void Specifier_string(StructFormat my_struct, va_list arguments, char *str,
@@ -744,13 +684,8 @@ void Specifier_nusigned_int(StructFormat my_struct, va_list arguments,
     d = va_arg(arguments, unsigned int);
   }
   char temp_str[1024] = {'\0'};
-  int i = 0;
-  while (d > 9) {
-    temp_str[i] = d % 10 + '0';
-    d /= 10;
-    i++;
-  }
-  temp_str[i++] = d % 10 + '0';
+  number_to_string(d, temp_str, 10);
+  int i = s21_strlen(temp_str);
   while (i < my_struct.accuracy) temp_str[i++] = '0';
   line_reversal(temp_str);
   record_to_string(my_struct, str, temp_str, 1, count);
@@ -763,13 +698,14 @@ void Specifier_persent(StructFormat my_struct, char *str, int *count) {
   str[(*count)] = '\0';
 }
 
-void Specifier_n(va_list arguments, int *count) {
+void Specifier_n(va_list arguments, char *str, int *count) {
   int *n = va_arg(arguments, int *);
   *n = *count;
+  str[(*count)] = '\0';
 }
 
-void Specifier_octal(StructFormat my_struct, va_list arguments,
-                            char *str, int *count) {
+void Specifier_octal(StructFormat my_struct, va_list arguments, char *str,
+                     int *count) {
   long long int d = va_arg(arguments, long long int);
   if (my_struct.length == 1)
     d = (short int)d;
@@ -778,43 +714,49 @@ void Specifier_octal(StructFormat my_struct, va_list arguments,
   else
     d = (int)d;
   char temp_str[1024] = {'\0'};
-  int i = 0;
-  while (d > 7) {
-    temp_str[i] = d % 8 + '0';
-    d /= 8;
-    i++;
-  }
-  temp_str[i++] = d % 8 + '0';
+  number_to_string(d, temp_str, 8);
+  int i = s21_strlen(temp_str);
   if (my_struct.flagReshotca == 1 && d != 0) temp_str[i++] = '0';
   while (i < my_struct.accuracy) temp_str[i++] = '0';
   line_reversal(temp_str);
   record_to_string(my_struct, str, temp_str, 1, count);
 }
 
-void Specifier_hex_pointer(StructFormat my_struct, va_list arguments,
-                            char *str, int *count) {
+void Specifier_hex_pointer(StructFormat my_struct, va_list arguments, char *str,
+                           int *count) {
   unsigned long d = 0;
-  int reg = (my_struct.option == 'x') ? 1 : -1;
-  if (my_struct.length == 5 || my_struct.option == 'p') 
+  int reg = (my_struct.option == 'x') ? 1 : 0;
+  if (my_struct.length == 5 || my_struct.option == 'p') {
     d = va_arg(arguments, unsigned long);
-  else d = va_arg(arguments, unsigned);
+    reg = 1;
+  } else if (my_struct.length == 1) {
+    d = va_arg(arguments, int);
+    d = (unsigned short)d;
+  } else if (my_struct.length == 3) {
+    d = va_arg(arguments, unsigned long);
+  } else
+    d = va_arg(arguments, unsigned);
   char temp_str[1024] = {'\0'};
   int i = 0;
   while (d > 15) {
+    ;
     temp_str[i] = hex_fitting(d, reg);
     d /= 16;
     i++;
     temp_str[i] = '\0';
   }
-  temp_str[i++] = hex_fitting(0xff, reg);
+  temp_str[i++] = hex_fitting(d, reg);
   if (my_struct.option == 'p') {
-    temp_str[i++] = my_struct.option;
+    temp_str[i++] = 'x';
     temp_str[i++] = '0';
     line_reversal(temp_str);
     temp_str[i] = '\0';
   } else {
-    if (my_struct.flagReshotca == 1 && d != 0) temp_str[i++] = '0';
     while (i < my_struct.accuracy) temp_str[i++] = '0';
+    if (my_struct.flagReshotca == 1 && d != 0) {
+      temp_str[i++] = (reg) ? 'x' : 'X';
+      temp_str[i++] = '0';
+    }
     temp_str[i] = '\0';
     line_reversal(temp_str);
   }
@@ -833,8 +775,8 @@ void record_to_string(StructFormat my_struct, char *str, char *temp_string,
   str[(*count)] = '\0';
 }
 
-void space_record(StructFormat my_struct, char *str, char *temp_string, int sign,
-                  int *count) {
+void space_record(StructFormat my_struct, char *str, char *temp_string,
+                  int sign, int *count) {
   if (my_struct.width > (int)s21_strlen(temp_string)) {
     int rasstoyanie = my_struct.width - (int)s21_strlen(temp_string);
     if ((my_struct.flagSpace == 1 || my_struct.flagPlus == 1) && sign == 1)
@@ -877,40 +819,23 @@ void Specifiers(StructFormat my_struct, va_list arguments, char *str,
       Specifier_persent(my_struct, str, count);
       break;  // конец обязаловки
     case 'n':
-      Specifier_n(arguments, count);
+      Specifier_n(arguments, str, count);
       break;
     case 'o':
-        Specifier_octal(my_struct, arguments, str, count);
-        break;
+      Specifier_octal(my_struct, arguments, str, count);
+      break;
     case 'x':
     case 'X':
     case 'p':
-        Specifier_hex_pointer(my_struct, arguments, str, count);
-        break;
-    /*case 'e':
-    case 'E':
-        d = va_arg(arguments, int);
-        temp_str = unsignedint_to_string(d);
-        for (l = 0; l < s21_strlen(temp_str); l++)
-            *str++ = temp_str[l];
-        free(temp_str);
-        *count++;
-        break;
-    case 'g':
-    case 'G':
-        d = va_arg(arguments, int);
-        temp_str = unsignedint_to_string(d);
-        for (l = 0; l < s21_strlen(temp_str); l++)
-            *str++ = temp_str[l];
-        free(temp_str);
-        *count++;
-        break;*/
+      Specifier_hex_pointer(my_struct, arguments, str, count);
+      break;
     default:
       break;
   }
 }
 
 int s21_sprintf(char *str, const char *format, ...) {
+  str[0] = '\0';
   va_list arguments = {0};
   va_start(arguments, format);
   int start = 0;
@@ -938,83 +863,46 @@ int s21_sprintf(char *str, const char *format, ...) {
   return count;
 }
 
-char *number_to_string(long int d, int base) {
-  char *string = NULL;
-  int sign = 1, memory_error = 0;
-  if (d < 0) {
-    sign = -1;
-    d = -d;
-  }
-  int i = 0;
-  while (d > (base - 1) && !memory_error) {
-    if ((string = realloc(string, (i + 1) * sizeof(char))) != NULL) {
-      string[i] = '\0';
-    } else
-      memory_error = 1;
-    string[i] = d % 10 + '0';
-    d /= base;
-    i++;
-  }
-  if (!memory_error &&
-      (string = realloc(string, (i + 2) * sizeof(char))) != NULL) {
-    string[i++] = d % base + '0';
-    if (sign == -1) {
-      string[i++] = '-';
-      string[i] = '\0';
-      line_reversal(string);
-      string[i] = '\0';
-    } else {
-      string[i] = '\0';
-      line_reversal(string);
-    }
-  }
-  return string;
-}
-
-/*char *double_to_string(long double f, StructFormat my_struct) {
-  char string[1024] = {'\0'};
+void double_to_string(long double f, char *temp_str, int accuracy) {
+  if (accuracy == -1) accuracy = 6;
   int sign = 1;
   if (f < 0) {
-    sign = -1;
     f = -f;
+    sign = -1;
   }
-  double integer = 0.0, fraction = 0.0;
-  fraction = modf(f, &integer);
+  long double integer = 0.0, fraction = 0.0;
+  fraction = modfl(f, &integer);
+  number_to_string(integer, temp_str, 10);
+  if (sign == -1) temp_str[s21_strlen(temp_str)] = '-';
+  line_reversal(temp_str);
+  if (accuracy != 0) temp_str[s21_strlen(temp_str)] = '.';
   int i = 0;
-  while (f > 9) {
-    string[i] = f % 10 + '0';
-    f /= 10;
+  while (i < accuracy) {
+    fraction *= 10.0;
     i++;
   }
-  string[i++] = f % 10 + '0';
-  while (i < my_struct.accuracy) string[i++] = '0';
-  if (sign == -1) string[i++] = '-';
-  string[s21_strlen(string)] = '.';
-  if (my_struct.accuracy == -1) {
-    my_struct.accuracy = 6;
-  }
-  for (int i = 0; i < my_struct.accuracy + 1; i++) fraction *= 10;
-  if ((long long int)fraction % 10 > 4) {
-    fraction /= 10;
-    fraction++;
-  } else
-    fraction /= 10;
-  // if (fraction < 1.0) fraction = 1e6;
-  char *temp = number_to_string(fraction, 10);
-  s21_strcat(string, temp);
-  string[s21_strlen(string)] = '\0';
-  string[s21_strlen(string)] = '\0';
-  string[s21_strlen(string) + 1] = '\0';
-  if (sign == -1) {
-    for (int i = (int)s21_strlen(string); i > 0; i--)
-      string[i] = string[i - 1];
-    string[0] = '-';
-  }
-  return string;
+  fraction = round(fraction);
+  char temp[512] = {'\0'};
+  number_to_string(fraction, temp, 10);
+  line_reversal(temp);
+  i = s21_strlen(temp) - 1;
+  int lenght = s21_strlen(temp_str);
+  i = 0;
+  while (i < accuracy - (int)s21_strlen(temp)) temp_str[lenght + i++] = '0';
+  s21_strcat(temp_str, temp);
+  temp_str[accuracy + lenght] = '\0';
+}
 
-}*/
+void number_to_string(long int integer, char *temp_str, int base) {
+  int i = 0;
+  while (integer > base - 1) {
+    temp_str[i++] = (long int)integer % base + '0';
+    integer /= base;
+  }
+  temp_str[i++] = (long int)integer % base + '0';
+}
 
-int hex_fitting(long long prototype, int reg) {
+int hex_fitting(unsigned long long prototype, int reg) {
   prototype %= 16;
   int integer = prototype + '0';
   if (prototype == 10) integer = (reg) ? 'a' : 'A';  // 97 - 65
@@ -1053,9 +941,9 @@ int func_to_parse_num(char *format, int counter, int point_position,
       result = result * 10;
       len_res--;
     }
-    if (counter > point_position)
+    if (counter > point_position) {
       my_struct->accuracy = (int)result;
-    else
+    } else
       my_struct->width = (int)result;
   } else
     my_struct->Error = 1;
@@ -1068,12 +956,16 @@ void func_to_parse_len(char *str, int counter, char *first_length,
     *first_length = str[counter];
   else {
     if (str[counter] == 'h') {
-      if (*first_length == 'h') my_struct->length = 2;
-      else my_struct->length = 1;
+      if (*first_length == 'h')
+        my_struct->length = 2;
+      else
+        my_struct->length = 1;
     }
     if (str[counter] == 'l') {
-      if (*first_length == 'l') my_struct->length = 4;
-      else my_struct->length = 3;
+      if (*first_length == 'l')
+        my_struct->length = 4;
+      else
+        my_struct->length = 3;
     }
     if (str[counter] == 'L') my_struct->length = 5;
     *first_length = '$';
@@ -1120,6 +1012,8 @@ StructFormat parserformat(int start, int end, char *format) {
           break;
         case '.':
           point_position = counter;
+          if (s21_strchr("cdifsunoxXp", format[counter + 1]) != s21_NULL)
+            my_struct.accuracy = 0;
           if ('0' > format[counter + 1] || format[counter + 1] > '9')
             my_struct.Error = 1;
           break;
