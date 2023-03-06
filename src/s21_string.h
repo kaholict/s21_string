@@ -55,16 +55,16 @@ int s21_sprintf(char *str, const char *format, ...);
 
 // some function
 void line_reversal(char *str);
-int hex_fitting(long long prototype, int reg);
+int hex_fitting(unsigned long long prototype, int reg);
 void record_to_string(StructFormat my_struct, char *str, char *temp_string,
                       int sign, int *count);
-void space_record(StructFormat my_struct, char *str, char *temp_string, int sign,
-                  int *count);
+void space_record(StructFormat my_struct, char *str, char *temp_string,
+                  int sign, int *count);
 void flags_symb_record(StructFormat my_struct, char *str, char *temp_string,
                        int sign, int *count);
 
-char *number_to_string(long int d, int base);
-char *double_to_string(long double f, StructFormat my_struct);
+void number_to_string(long int integer, char *temp_str, int base);
+void double_to_string(long double f, char *temp_str, int accuracy);
 
 // ilya`s parse
 int func_to_parse_num(char *format, int counter, int point_position,
@@ -80,18 +80,16 @@ void Specifiers(StructFormat my_struct, va_list arguments, char *str,
 void Specifier_c(StructFormat my_struct, va_list arguments, char *str,
                  int *count);
 void Specifier_double(StructFormat my_struct, va_list arguments, char *str,
-                     int *count);
+                      int *count);
 void Specifier_string(StructFormat my_struct, va_list arguments, char *str,
                       int *count);
 void Specifier_nusigned_int(StructFormat my_struct, va_list arguments,
                             char *str, int *count);
 void Specifier_persent(StructFormat my_struct, char *str, int *count);
-void Specifier_n(va_list arguments, int *count);
-void Specifier_octal(StructFormat my_struct, va_list arguments, char *str, int *count);
-void Specifier_hex_pointer(StructFormat my_struct, va_list arguments, char *str, int *count);
-
-void ftoa(double f, char *buf, int precision);  //  надо переделать
-void add_spaces_or_zeros(char *str, int value, char ch, int *i_str);
-void itoa(long long n, char *buf);
+void Specifier_n(va_list arguments, char *str, int *count);
+void Specifier_octal(StructFormat my_struct, va_list arguments, char *str,
+                     int *count);
+void Specifier_hex_pointer(StructFormat my_struct, va_list arguments, char *str,
+                           int *count);
 
 #endif  // SRC_S21_STRING_H_

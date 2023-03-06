@@ -1,47 +1,50 @@
-.PHONY = all s21_string.a test gcov_report check clean
 CC = gcc
-FLAG_C = -c
-FLAG_O = -o
-ASAN = -g -fsanitize=address
-FLAG_COV = --coverage
-FLAG_ER = -Wall -Werror -Wextra -std=c11
-GCOV = -fprofile-arcs -ftest-coverage
-# ifeq ($(OS), Darwin)
-# TEST_LIBS = -lcheck -lgcov
-# else
-# TEST_LIBS = `pkg-config --cflags --libs check` -lm -lgcov -c
-# endif
-# TST_LIBS = -lcheck -pthread -lrt -lm -lsubunit -lgcov
-TST_LIBS = -lcheck -lm -lpthread -lgcov --coverage
-ifeq ($(shell uname), Linux)
-TST_LIBS = -lcheck -lsubunit -lrt -lm -lpthread -lgcov --coverage
+# CFLAGS = -c -Wall -Werror -Wextra
+CFLAGS = -Wall -Werror -Wextra
+GCOVFLAGS = -fprofile-arcs -ftest-coverage
+TEST_LIBS = -lcheck -lm
+SOURCE = $(wildcard *.c)
+HEADER = s21_string.h
+OBJ := $(patsubst %.c, %.o, $(SOURCE))
+OS = $(shell uname)
+
+ifeq ($(OS), Darwin)
+	TEST_LIBS = -lcheck -lm
+else
+	TEST_LIBS = -lcheck -lsubunit -lpthread -lrt -lm -D_GNU_SOURCE
 endif
-s21_string_C = s21_string.c 
-s21_string_O = s21_string.o
 
-all: clean gcov_report
+%.o: %.c $(HEADER)
+	$(CC) $(CFLAGS) -g -c $< -o $@
 
-s21_string.a:
-	$(CC) $(FLAG_C) $(FLAG_ER) $(ASAN) $(TST_LIBS) $(s21_string_C)
-	ar rc s21_string.a $(s21_string_O)
+all: s21_string.a test gcov_report
+
+s21_string.a: $(OBJ) $(HEADER)
+	ar rcs s21_string.a $(OBJ)
 	ranlib s21_string.a
+	rm -rf FUNC/*.o
 
-test: clean s21_string.a
-	$(CC) $(FLAG_ER) $(FLAG_O) test $(s21_string_C) string_test.c s21_string.a $(TST_LIBS)
-	./test
+test: s21_string.a 
+	gcc $(CFLAGS) Tests/string_test1.c s21_string.a $(TEST_LIBS) -o test.out
+	./test.out
 
-gcov_report: clean s21_string.a
-	$(CC) $(FLAG_ER) $(GCOV) string_test.c $(TST_LIBS) s21_*.c -o gcovreport
-	./gcovreport
-	lcov -t "gcovreport" -o gcovreport.info -c -d .
-	genhtml -o report gcovreport.info
-	open /report/index.html
- 
-check:
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=RESULT_VALGRIND.txt ./tests
+valgrind: clean s21_string.a
+	$(CC) Tests/string_test1.c s21_string.a -o test $(TEST_LIBS)
+	CK_FORK=no valgrind --trace-children=yes --track-fds=yes --track-origins=yes --leak-check=full --show-leak-kinds=all --verbose --log-file=RESULT_VALGRIND.txt ./test
 
-clean:
-	-rm -rf *.o *.html *.gcda *.gcno *.css *.a *.gcov *.info *.out *.cfg *.txt
-	-rm -f test
-	-rm -f report gcovreport
-	find . -type d -name 'tests.dSYM' -exec rm -r {} +
+gcov_report: s21_string.a test
+	gcc $(GCOVFLAGS) Tests/string_test1.c $(SOURCE) -o report.out $(TEST_LIBS)
+	./report.out
+	gcov -f $(SOURCE)
+	lcov -t "gcov_report" -o Coverage_Report.info -c -d .
+	genhtml -o ./report Coverage_Report.info
+	rm -f *.gcno *.gcda *.info report.out *.gcov
+	open ./report/index-sort-f.html
+
+clean: 
+	rm -rf *.o *.out *.gcov *.gcno *.info *.gcda *.a
+
+rebuild: clean all
+
+clang:
+	clang-format -style=google -n *.c *.h Tests/*.c
